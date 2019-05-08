@@ -317,14 +317,14 @@ echo -e "\n[\033[33m$LinuxName\033[0m] [\033[33m$DIST\033[0m] [\033[33m$VER\033[
 [[ -z "$DISTMirror" ]] && echo -ne "\033[31mError! \033[0mInvaild mirror! \n" && exit 1
 
 if [[ "$linuxdists" == 'debian' ]] || [[ "$linuxdists" == 'ubuntu' ]]; then
-wget --no-check-certificate -qO '/boot/initrd.img' "https://mirrors.tuna.tsinghua.edu.cn/debian/dists/stretch/main/installer-amd64/current/images/netboot/debian-installer/amd64/initrd.gz"
+wget --no-check-certificate -qO '/boot/initrd.img' "https://mirrors.tuna.tsinghua.edu.cn/debian/dists/${tmpDIST}/main/installer-amd64/current/images/netboot/debian-installer/amd64/initrd.gz"
 [[ $? -ne '0' ]] && echo -ne "\033[31mError! \033[0mDownload 'initrd.img' for \033[33m$linuxdists\033[0m failed! \n" && exit 1
-wget --no-check-certificate -qO '/boot/vmlinuz' "https://mirrors.tuna.tsinghua.edu.cn/debian/dists/stretch/main/installer-amd64/current/images/netboot/debian-installer/amd64/linux"
+wget --no-check-certificate -qO '/boot/vmlinuz' "https://mirrors.tuna.tsinghua.edu.cn/debian/dists/${tmpDIST}/main/installer-amd64/current/images/netboot/debian-installer/amd64/linux"
 [[ $? -ne '0' ]] && echo -ne "\033[31mError! \033[0mDownload 'vmlinuz' for \033[33m$linuxdists\033[0m failed! \n" && exit 1
 fi
 if [[ "$linuxdists" == 'debian' ]]; then
   if [[ "$ddMode" == '1' ]]; then
-    vKernel_udeb=$(wget --no-check-certificate -qO- "http://$DISTMirror/dists/$DIST/main/installer-$VER/$PreferOption/images/udeb.list" |grep '^acpi-modules' |head -n1 |grep -o '[0-9]\{1,2\}.[0-9]\{1,2\}.[0-9]\{1,2\}-[0-9]\{1,2\}' |head -n1)
+    vKernel_udeb=$(wget --no-check-certificate -qO- "https://mirrors.tuna.tsinghua.edu.cn/debian/dists/${tmpDIST}/main/installer-amd64/current/images/udeb.list" |grep '^acpi-modules' |head -n1 |grep -o '[0-9]\{1,2\}.[0-9]\{1,2\}.[0-9]\{1,2\}-[0-9]\{1,2\}' |head -n1)
     [[ -z "vKernel_udeb" ]] && vKernel_udeb="3.16.0-4"
   fi
 fi
@@ -551,8 +551,9 @@ d-i netcfg/choose_interface select auto
 #d-i netcfg/get_netmask string $MASK
 #d-i netcfg/get_gateway string $GATE
 #d-i netcfg/get_nameservers string 8.8.8.8
-#d-i netcfg/no_default_route boolean true
+d-i netcfg/no_default_route boolean true
 #d-i netcfg/confirm_static boolean true
+d-i netcfg/dhcp_timeout string 60
 
 ### Mirror settings
 choose-mirror-bin mirror/http/proxy string
@@ -562,9 +563,10 @@ d-i mirror/http/directory string /debian
 d-i mirror/http/hostname string mirrors.tuna.tsinghua.edu.cn
 d-i mirror/http/proxy string
 d-i apt-setup/backports boolean true
-d-i apt-setup/services-select multiselect security
+d-i apt-setup/services-select multiselect security backports
 d-i apt-setup/security_host string mirrors.tuna.tsinghua.edu.cn
 d-i apt-setup/security_path string /debian
+d-i apt-setup/disable-cdrom-entries boolean true
 
 ### Account setup
 d-i passwd/root-login boolean ture
@@ -610,7 +612,7 @@ d-i debian-installer/allow_unauthenticated boolean true
 
 tasksel tasksel/first multiselect minimal
 d-i pkgsel/update-policy select none
-d-i pkgsel/include string openssh-server
+d-i pkgsel/include string curl wget openssh-server sudo sed apt-transport-https net-tools nano git
 d-i pkgsel/upgrade select none
 
 popularity-contest popularity-contest/participate boolean false
