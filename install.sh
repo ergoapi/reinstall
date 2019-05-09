@@ -667,32 +667,14 @@ WinRDP(){
 }
 fi
 
-find . | cpio -H newc --create --verbose | gzip -9 > /boot/initrd.img;
-rm -rf /tmp/boot;
+  find . | cpio -H newc --create --verbose | gzip -9 > /boot/initrd.img;
+  rm -rf /tmp/boot;
 }
 
-[[ "$inVNC" == 'y' ]] && {
-  sed -i '$i\\n' $GRUBDIR/$GRUBFILE
-  sed -i '$r /tmp/grub.new' $GRUBDIR/$GRUBFILE
-  echo -e "\n\033[33m\033[04mIt will reboot! \nPlease look at VNC! \nSelect\033[0m\033[32m Install OS [$DIST $VER] \033[33m\033[4mto install system.\033[04m\n\n\033[31m\033[04mThere is some information for you.\nDO NOT CLOSE THE WINDOW! \033[0m\n"
-  echo -e "\033[35mIPv4\t\tNETMASK\t\tGATEWAY\033[0m"
-  echo -e "\033[36m\033[04m$IPv4\033[0m\t\033[36m\033[04m$MASK\033[0m\t\033[36m\033[04m$GATE\033[0m\n\n"
-
-  read -n 1 -p "Press Enter to reboot..." INP
-  [[ "$INP" != '' ]] && echo -ne '\b \n\n';
-}
+info "ddMode:" "$ddMode"
 
 chown root:root $GRUBDIR/$GRUBFILE
 chmod 444 $GRUBDIR/$GRUBFILE
 
-if [[ "$loaderMode" == "0" ]]; then
-  sleep 3 && reboot >/dev/null 2>&1
-else
-  rm -rf "$HOME/loader"
-  mkdir -p "$HOME/loader"
-  cp -rf "/boot/initrd.img" "$HOME/loader/initrd.img"
-  cp -rf "/boot/vmlinuz" "$HOME/loader/vmlinuz"
-  [[ -f "/boot/initrd.img" ]] && rm -rf "/boot/initrd.img"
-  [[ -f "/boot/vmlinuz" ]] && rm -rf "/boot/vmlinuz"
-  echo && ls -AR1 "$HOME/loader"
-fi
+progress "will reboot"
+sleep 3 && reboot >/dev/null 2>&1
