@@ -55,6 +55,8 @@ for BIN_DEP in `echo "$1" |sed 's/,/\n/g'`
   done
 if [ "$FullDependence" == '1' ]; then
   notice "please install it"
+else
+  run_ok
 fi
 }
 
@@ -64,38 +66,11 @@ if [[ "$linuxdists" == 'debian' ]] || [[ "$linuxdists" == 'ubuntu' ]]; then
   CheckDependence wget,awk,grep,sed,cut,cat,cpio,gzip,find,dirname,basename;
 fi
 
-if [[ -n "$tmpWORD" ]]; then
-  CheckDependence openssl;
-fi
-
 if [[ "$loaderMode" == "0" ]]; then
   [[ -f '/boot/grub/grub.cfg' ]] && GRUBOLD='0' && GRUBDIR='/boot/grub' && GRUBFILE='grub.cfg';
   [[ -z "$GRUBDIR" ]] && [[ -f '/boot/grub2/grub.cfg' ]] && GRUBOLD='0' && GRUBDIR='/boot/grub2' && GRUBFILE='grub.cfg';
   [[ -z "$GRUBDIR" ]] && [[ -f '/boot/grub/grub.conf' ]] && GRUBOLD='1' && GRUBDIR='/boot/grub' && GRUBFILE='grub.conf';
-  [ -z "$GRUBDIR" -o -z "$GRUBFILE" ] && echo -ne "Error! \nNot Found grub path.\n" && exit 1;
-else
-  tmpINS='auto'
-fi
-
-if [[ "$isMirror" == '1' ]]; then
-  if [[ -n "$tmpMirror" ]]; then
-    TMPMirrorHost="$(echo -n "$tmpMirror" |grep -Eo '.*\.(\w+)')";
-    echo "$TMPMirrorHost" |grep -q '://';
-    if [[ $? == '0' ]]; then
-      MirrorHost="$(echo "$TMPMirrorHost" |awk -F'://' '{print $2}')";
-    else
-      echo -en "\n\033[31mInvaild Mirror! \033[0m\n";
-      [[ "$linuxdists" == 'debian' ]] && echo -en "\033[33mexample:\033[0m http://deb.debian.org/debian\n\n";
-      exit 1
-    fi
-    if [[ -n "$MirrorHost" ]]; then
-      MirrorFolder="$(echo -n "$tmpMirror" |awk -F''${MirrorHost}'' '{print $2}' |sed 's/\/$//g')";
-      if [[ -z "$MirrorFolder" ]]; then
-        [[ "$linuxdists" == 'debian' ]] && MirrorFolder='/debian';
-      fi
-      DISTMirror="${MirrorHost}${MirrorFolder}";
-    fi
-  fi
+  [ -z "$GRUBDIR" -o -z "$GRUBFILE" ] && notice "Error! \nNot Found grub path.\n";
 fi
 
 if [[ -z "$DISTMirror" ]]; then
@@ -145,8 +120,6 @@ if [[ "$SpikCheckDIST" == '0' ]]; then
     exit 1;
   }
 fi
-
-[[ -z "$INCFW" ]] && INCFW='0';
 
 progress "prepare install"
 
@@ -201,8 +174,7 @@ echo ${arrayNum[@]} |sed 's/\s/\n/g' |sort -n -k 1 -t ',' |tail -n1 |cut -d',' -
 [[ -z $MASK ]] && MASK="$(SelectMax 3)";
 
 [[ -n "$GATE" ]] && [[ -n "$MASK" ]] && [[ -n "$IPv4" ]] || {
-  echo "Error! Not configure network. ";
-  exit 1;
+  notice "Error! Not configure network. "
 }
 }
 
@@ -245,8 +217,6 @@ else
   GRUBOLD='2'
 fi
 
-info "GRUBOLD: " "$GRUBOLD"
-
 [[ "$GRUBOLD" == '0' ]] && {
   READGRUB='/tmp/grub.read'
   cat $GRUBDIR/$GRUBFILE |sed -n '1h;1!H;$g;s/\n/%%%%%%%/g;$p' |grep -om 1 'menuentry\ [^{]*{[^}]*}%%%%%%%' |sed 's/%%%%%%%/\n/g' >$READGRUB
@@ -262,31 +232,18 @@ info "GRUBOLD: " "$GRUBOLD"
         [ "$tmpCFG" -gt "$CFG0" -a "$tmpCFG" -lt "$CFG2" ] && CFG1="$tmpCFG";
       done
     [[ -z "$CFG1" ]] && {
-      echo "Error! read $GRUBFILE. ";
-      exit 1;
+      notice "Error! read $GRUBFILE. ";
     }
 
     sed -n "$CFG0,$CFG1"p $READGRUB >/tmp/grub.new;
     [[ -f /tmp/grub.new ]] && [[ "$(grep -c '{' /tmp/grub.new)" -eq "$(grep -c '}' /tmp/grub.new)" ]] || {
-      echo -ne "\033[31mError! \033[0mNot configure $GRUBFILE. \n";
-      exit 1;
+      notice "Error!Not configure $GRUBFILE."
     }
   fi
   [ ! -f /tmp/grub.new ] && echo "Error! $GRUBFILE. " && exit 1;
   sed -i "/menuentry.*/c\menuentry\ \'Install OS \[$DIST\ $VER\]\'\ --class debian\ --class\ gnu-linux\ --class\ gnu\ --class\ os\ \{" /tmp/grub.new
   sed -i "/echo.*Loading/d" /tmp/grub.new;
   INSERTGRUB="$(awk '/menuentry /{print NR}' $GRUBDIR/$GRUBFILE|head -n 1)"
-}
-
-[[ "$GRUBOLD" == '1' ]] && {
-  CFG0="$(awk '/title[\ ]|title[\t]/{print NR}' $GRUBDIR/$GRUBFILE|head -n 1)";
-  CFG1="$(awk '/title[\ ]|title[\t]/{print NR}' $GRUBDIR/$GRUBFILE|head -n 2 |tail -n 1)";
-  [[ -n $CFG0 ]] && [ -z $CFG1 -o $CFG1 == $CFG0 ] && sed -n "$CFG0,$"p $GRUBDIR/$GRUBFILE >/tmp/grub.new;
-  [[ -n $CFG0 ]] && [ -z $CFG1 -o $CFG1 != $CFG0 ] && sed -n "$CFG0,$[$CFG1-1]"p $GRUBDIR/$GRUBFILE >/tmp/grub.new;
-  [[ ! -f /tmp/grub.new ]] && echo "Error! configure append $GRUBFILE. " && exit 1;
-  sed -i "/title.*/c\title\ \'Install OS \[$DIST\ $VER\]\'" /tmp/grub.new;
-  sed -i '/^#/d' /tmp/grub.new;
-  INSERTGRUB="$(awk '/title[\ ]|title[\t]/{print NR}' $GRUBDIR/$GRUBFILE|head -n 1)"
 }
 
 if [[ "$loaderMode" == "0" ]]; then
@@ -361,7 +318,7 @@ fi
 [[ "$COMPTYPE" == 'xz' ]] && UNCOMP='xz --decompress';
 [[ "$COMPTYPE" == 'gzip' ]] && UNCOMP='gzip -q -d';
 
-run $UNCOMP < /tmp/$NewIMG  | cpio --extract --make-directories --no-absolute-filenames >>/dev/null 2>&1
+run "$UNCOMP < /tmp/$NewIMG  | cpio --extract --make-directories --no-absolute-filenames >>/dev/null 2>&1"
 
 if [[ "$linuxdists" == 'debian' ]] || [[ "$linuxdists" == 'ubuntu' ]]; then
   info "write preseed.cfg"
@@ -493,7 +450,7 @@ EOF
   }
 fi
 
-  run find . | cpio -H newc --create  | gzip -q -9 > /boot/initrd.img;
+  run "find . | cpio -H newc --create  | gzip -q -9 > /boot/initrd.img;"
   rm -rf /tmp/boot;
 
 
