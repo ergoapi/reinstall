@@ -351,49 +351,49 @@ fi
 
 sed -i '$a\\n' /tmp/grub.new;
 fi
-info "inVNC:" "$inVNC"
-[[ "$inVNC" == 'n' ]] && {
-GRUBPATCH='0';
-info "loaderMode:" "$loaderMode" 
-if [[ "$loaderMode" == "0" ]]; then
-[ -f '/etc/network/interfaces' -o -d '/etc/sysconfig/network-scripts' ] || {
-  notice "Error, Not found interfaces config."
-}
 
-sed -i ''${INSERTGRUB}'i\\n' $GRUBDIR/$GRUBFILE;
-sed -i ''${INSERTGRUB}'r /tmp/grub.new' $GRUBDIR/$GRUBFILE;
-[[ -f  $GRUBDIR/grubenv ]] && sed -i 's/saved_entry/#saved_entry/g' $GRUBDIR/grubenv;
-fi
+  GRUBPATCH='0';
+  if [[ "$loaderMode" == "0" ]]; then
+    progress "loaderMode 0"
+    [ -f '/etc/network/interfaces' -o -d '/etc/sysconfig/network-scripts' ] || {
+      notice "Error, Not found interfaces config."
+    }
 
-[[ -d /tmp/boot ]] && rm -rf /tmp/boot;
-mkdir -p /tmp/boot;
-cd /tmp/boot;
-if [[ "$linuxdists" == 'debian' ]] || [[ "$linuxdists" == 'ubuntu' ]]; then
-  COMPTYPE="gzip";
-fi
-CompDected='0'
-for ListCOMP in `echo -en 'gzip\nlzma\nxz'`
-  do
-    if [[ "$COMPTYPE" == "$ListCOMP" ]]; then
-      CompDected='1'
-      if [[ "$COMPTYPE" == 'gzip' ]]; then
-        NewIMG="initrd.img.gz"
-      else
-        NewIMG="initrd.img.$COMPTYPE"
+    sed -i ''${INSERTGRUB}'i\\n' $GRUBDIR/$GRUBFILE;
+    sed -i ''${INSERTGRUB}'r /tmp/grub.new' $GRUBDIR/$GRUBFILE;
+    [[ -f  $GRUBDIR/grubenv ]] && sed -i 's/saved_entry/#saved_entry/g' $GRUBDIR/grubenv;
+  fi
+
+  [[ -d /tmp/boot ]] && rm -rf /tmp/boot;
+  mkdir -p /tmp/boot;
+  cd /tmp/boot;
+  if [[ "$linuxdists" == 'debian' ]] || [[ "$linuxdists" == 'ubuntu' ]]; then
+    COMPTYPE="gzip";
+  fi
+  CompDected='0'
+  for ListCOMP in `echo -en 'gzip\nlzma\nxz'`
+    do
+      if [[ "$COMPTYPE" == "$ListCOMP" ]]; then
+        CompDected='1'
+        if [[ "$COMPTYPE" == 'gzip' ]]; then
+          NewIMG="initrd.img.gz"
+        else
+          NewIMG="initrd.img.$COMPTYPE"
+        fi
+        mv -f "/boot/initrd.img" "/tmp/$NewIMG"
+        break;
       fi
-      mv -f "/boot/initrd.img" "/tmp/$NewIMG"
-      break;
-    fi
   done
-[[ "$CompDected" != '1' ]] && echo "Detect compressed type not support." && exit 1;
+[[ "$CompDected" != '1' ]] && notice "Detect compressed type not support.";
 [[ "$COMPTYPE" == 'lzma' ]] && UNCOMP='xz --format=lzma --decompress';
 [[ "$COMPTYPE" == 'xz' ]] && UNCOMP='xz --decompress';
 [[ "$COMPTYPE" == 'gzip' ]] && UNCOMP='gzip -d';
 
-$UNCOMP < /tmp/$NewIMG | cpio --extract --verbose --make-directories --no-absolute-filenames >>/dev/null 2>&1
+run $UNCOMP < /tmp/$NewIMG | cpio --extract --verbose --make-directories --no-absolute-filenames >>/dev/null 2>&1
 
 if [[ "$linuxdists" == 'debian' ]] || [[ "$linuxdists" == 'ubuntu' ]]; then
-cat >/tmp/boot/preseed.cfg<<EOF
+  info "write preseed.cfg"
+  cat >/tmp/boot/preseed.cfg<<EOF
 ### localization
 d-i debian-installer/locale string en_US
 d-i debian-installer/language string en
@@ -521,9 +521,9 @@ EOF
   }
 fi
 
-  find . | cpio -H newc --create --verbose | gzip -9 > /boot/initrd.img;
+  run find . | cpio -H newc --create --verbose | gzip -9 > /boot/initrd.img;
   rm -rf /tmp/boot;
-}
+
 
 info "ddMode:" "$ddMode"
 
