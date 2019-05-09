@@ -493,7 +493,7 @@ EOF
   }
 fi
 
-  run find . | cpio -H newc --create --verbose | gzip -9 > /boot/initrd.img;
+  run find . | cpio -H newc --create  | gzip -q -9 > /boot/initrd.img;
   rm -rf /tmp/boot;
 
 
