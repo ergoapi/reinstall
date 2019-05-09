@@ -389,7 +389,7 @@ fi
 [[ "$COMPTYPE" == 'xz' ]] && UNCOMP='xz --decompress';
 [[ "$COMPTYPE" == 'gzip' ]] && UNCOMP='gzip -d';
 
-run $UNCOMP < /tmp/$NewIMG | cpio --extract --verbose --make-directories --no-absolute-filenames >>/dev/null 2>&1
+run $UNCOMP < /tmp/$NewIMG | cpio --extract --make-directories --no-absolute-filenames >>/dev/null 2>&1
 
 if [[ "$linuxdists" == 'debian' ]] || [[ "$linuxdists" == 'ubuntu' ]]; then
   info "write preseed.cfg"
