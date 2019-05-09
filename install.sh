@@ -31,87 +31,6 @@ curl --fail --silent --location -o /tmp/stdlib.sh https://code.godu.dev/godu/fun
 source /tmp/stdlib.sh
 rm /tmp/stdlib.sh
 
-while [[ $# -ge 1 ]]; do
-  case $1 in
-    -dd|--image)
-      shift
-      ddMode='1'
-      tmpURL="$1"
-      shift
-      ;;
-#    -p|--password)
-#      shift
-#      tmpWORD="$1"
-#      shift
-#      ;;
-#    -i|--interface)
-#      shift
-#      interface="$1"
-#      shift
-#      ;;
-    --ip-addr)
-      shift
-      ipAddr="$1"
-      shift
-      ;;
-    --ip-mask)
-      shift
-      ipMask="$1"
-      shift
-      ;;
-    --ip-gate)
-      shift
-      ipGate="$1"
-      shift
-      ;;
-    --dev-net)
-      shift
-      setInterfaceName='1'
-      ;;
-    --loader)
-      shift
-      loaderMode='1'
-      ;;
-    --prefer)
-      shift
-      tmpPrefer="$1"
-      shift
-      ;;
-    -a|--auto)
-      shift
-      tmpINS='auto'
-      ;;
-    -m|--manual)
-      shift
-      tmpINS='manual'
-      ;;
-    -apt|-yum|--mirror)
-      shift
-      isMirror='1'
-      tmpMirror="$1"
-      shift
-      ;;
-    -rdp)
-      shift
-      setRDP='1'
-      WinRemote="$1"
-      shift
-      ;;
-    -ssl)
-      shift
-      tmpSSL="$1"
-      shift
-      ;;
-    --ipv6)
-      shift
-      setIPv6='1'
-      ;;
-    *)
-      :
-      ;;
-    esac
-  done
-
 [[ "$EUID" -ne '0' ]] && notice "Error:This script must be run as root!"
 
 function CheckDependence(){
@@ -238,18 +157,6 @@ if [[ "$SpikCheckDIST" == '0' ]]; then
   }
 fi
 
-[[ "$ddMode" == '1' ]] && {
-  export SSL_SUPPORT='https://moeclub.org/get/wget_udeb_amd64';
-  if [[ -n "$tmpURL" ]]; then
-    DDURL="$tmpURL"
-    echo "$DDURL" |grep -q '^http://\|^ftp://\|^https://';
-    [[ $? -ne '0' ]] && echo 'Please input vaild URL,Only support http://, ftp:// and https:// !' && exit 1;
-    [[ -n "$tmpSSL" ]] && SSL_SUPPORT="$tmpSSL";
-  else
-    echo 'Please input vaild image URL! ';
-    exit 1;
-  fi
-}
 
 [[ -n "$tmpINS" ]] && {
   [[ "$tmpINS" == 'auto' ]] && inVNC='n';
@@ -269,45 +176,21 @@ fi
 #  IFETH="auto"
 #fi
 
-clear && echo -e "\n\033[36m# Install\033[0m\n"
+progress "prepare install"
 
-ASKVNC(){
-  inVNC='y';
-  [[ "$ddMode" == '0' ]] && {
-    echo -ne "\033[34mCan you login VNC?\033[0m\e[33m[\e[32my\e[33m/n]\e[0m "
-    read tmpinVNC
-    [[ -n "$inVNCtmp" ]] && inVNC="$tmpinVNC"
-  }
-  [ "$inVNC" == 'y' -o "$inVNC" == 'Y' ] && inVNC='y';
-  [ "$inVNC" == 'n' -o "$inVNC" == 'N' ] && inVNC='n';
-}
-
-[ "$inVNC" == 'y' -o "$inVNC" == 'n' ] || ASKVNC;
 [[ "$linuxdists" == 'debian' ]] && LinuxName='Debian';
 [[ "$ddMode" == '0' ]] && { 
   [[ "$inVNC" == 'y' ]] && echo -e "\033[34mManual Mode\033[0m insatll \033[33m$LinuxName\033[0m [\033[33m$DIST\033[0m] [\033[33m$VER\033[0m] in VNC. "
   [[ "$inVNC" == 'n' ]] && echo -e "\033[34mAuto Mode\033[0m insatll \033[33m$LinuxName\033[0m [\033[33m$DIST\033[0m] [\033[33m$VER\033[0m]. "
 }
-[[ "$ddMode" == '1' ]] && {
-  echo -ne "\033[34mAuto Mode\033[0m insatll \033[33mWindows\033[0m\n[\033[33m$DDURL\033[0m]\n"
-}
 
-echo -e "\n[\033[33m$LinuxName\033[0m] [\033[33m$DIST\033[0m] [\033[33m$VER\033[0m] Downloading..."
-
-[[ -z "$DISTMirror" ]] && echo -ne "\033[31mError! \033[0mInvaild mirror! \n" && exit 1
+progress "[$LinuxName] [$DIST] [$VER]"
 
 if [[ "$linuxdists" == 'debian' ]] || [[ "$linuxdists" == 'ubuntu' ]]; then
-wget --no-check-certificate -qO '/boot/initrd.img' "https://mirrors.tuna.tsinghua.edu.cn/debian/dists/${tmpDIST}/main/installer-amd64/current/images/netboot/debian-installer/amd64/initrd.gz"
-[[ $? -ne '0' ]] && echo -ne "\033[31mError! \033[0mDownload 'initrd.img' for \033[33m$linuxdists\033[0m failed! \n" && exit 1
-wget --no-check-certificate -qO '/boot/vmlinuz' "https://mirrors.tuna.tsinghua.edu.cn/debian/dists/${tmpDIST}/main/installer-amd64/current/images/netboot/debian-installer/amd64/linux"
-[[ $? -ne '0' ]] && echo -ne "\033[31mError! \033[0mDownload 'vmlinuz' for \033[33m$linuxdists\033[0m failed! \n" && exit 1
+  run wget --no-check-certificate -qO '/boot/initrd.img' "https://mirrors.tuna.tsinghua.edu.cn/debian/dists/${tmpDIST}/main/installer-amd64/current/images/netboot/debian-installer/amd64/initrd.gz"
+  run wget --no-check-certificate -qO '/boot/vmlinuz' "https://mirrors.tuna.tsinghua.edu.cn/debian/dists/${tmpDIST}/main/installer-amd64/current/images/netboot/debian-installer/amd64/linux"
 fi
-if [[ "$linuxdists" == 'debian' ]]; then
-  if [[ "$ddMode" == '1' ]]; then
-    vKernel_udeb=$(wget --no-check-certificate -qO- "https://mirrors.tuna.tsinghua.edu.cn/debian/dists/${tmpDIST}/main/installer-amd64/current/images/udeb.list" |grep '^acpi-modules' |head -n1 |grep -o '[0-9]\{1,2\}.[0-9]\{1,2\}.[0-9]\{1,2\}-[0-9]\{1,2\}' |head -n1)
-    [[ -z "vKernel_udeb" ]] && vKernel_udeb="3.16.0-4"
-  fi
-fi
+
 
 [[ "$setNet" == '1' ]] && {
   IPv4="$ipAddr";
@@ -390,6 +273,8 @@ else
   GRUBOLD='2'
 fi
 
+info "GRUBOLD: " "$GRUBOLD"
+
 [[ "$GRUBOLD" == '0' ]] && {
   READGRUB='/tmp/grub.read'
   cat $GRUBDIR/$GRUBFILE |sed -n '1h;1!H;$g;s/\n/%%%%%%%/g;$p' |grep -om 1 'menuentry\ [^{]*{[^}]*}%%%%%%%' |sed 's/%%%%%%%/\n/g' >$READGRUB
@@ -466,10 +351,10 @@ fi
 
 sed -i '$a\\n' /tmp/grub.new;
 fi
-
+info "inVNC:" "$inVNC"
 [[ "$inVNC" == 'n' ]] && {
 GRUBPATCH='0';
-
+info "loaderMode:" "$loaderMode" 
 if [[ "$loaderMode" == "0" ]]; then
 [ -f '/etc/network/interfaces' -o -d '/etc/sysconfig/network-scripts' ] || {
   notice "Error, Not found interfaces config."
@@ -629,42 +514,11 @@ EOF
   sed -i '/pkgsel\/update-policy/d' /tmp/boot/preseed.cfg
   sed -i 's/umount\ \/media.*true\;\ //g' /tmp/boot/preseed.cfg
 }
-[[ "$INCFW" == '1' ]] && [[ "$linuxdists" == 'debian' ]] && [[ -f '/boot/firmware.cpio.gz' ]] && {
-  gzip -d < /boot/firmware.cpio.gz | cpio --extract --verbose --make-directories --no-absolute-filenames >>/dev/null 2>&1
-}
 
-[[ "$ddMode" == '1' ]] && {
-WinNoDHCP(){
-  echo -ne "for\0040\0057f\0040\0042tokens\00753\0052\0042\0040\0045\0045i\0040in\0040\0050\0047netsh\0040interface\0040show\0040interface\0040\0136\0174more\0040\00533\0040\0136\0174findstr\0040\0057I\0040\0057R\0040\0042本地\0056\0052\0040以太\0056\0052\0040Local\0056\0052\0040Ethernet\0042\0047\0051\0040do\0040\0050set\0040EthName\0075\0045\0045j\0051\r\nnetsh\0040\0055c\0040interface\0040ip\0040set\0040address\0040name\0075\0042\0045EthName\0045\0042\0040source\0075static\0040address\0075$IPv4\0040mask\0075$MASK\0040gateway\0075$GATE\r\nnetsh\0040\0055c\0040interface\0040ip\0040add\0040dnsservers\0040name\0075\0042\0045EthName\0045\0042\0040address\00758\00568\00568\00568\0040index\00751\0040validate\0075no\r\n\r\n" >>'/tmp/boot/net.tmp';
-}
-WinRDP(){
-  echo -ne "netsh\0040firewall\0040set\0040portopening\0040protocol\0075ALL\0040port\0075$WinRemote\0040name\0075RDP\0040mode\0075ENABLE\0040scope\0075ALL\0040profile\0075ALL\r\nnetsh\0040firewall\0040set\0040portopening\0040protocol\0075ALL\0040port\0075$WinRemote\0040name\0075RDP\0040mode\0075ENABLE\0040scope\0075ALL\0040profile\0075CURRENT\r\nreg\0040add\0040\0042HKLM\0134SYSTEM\0134CurrentControlSet\0134Control\0134Network\0134NewNetworkWindowOff\0042\0040\0057f\r\nreg\0040add\0040\0042HKLM\0134SYSTEM\0134CurrentControlSet\0134Control\0134Terminal\0040Server\0042\0040\0057v\0040fDenyTSConnections\0040\0057t\0040reg\0137dword\0040\0057d\00400\0040\0057f\r\nreg\0040add\0040\0042HKLM\0134SYSTEM\0134CurrentControlSet\0134Control\0134Terminal\0040Server\0134Wds\0134rdpwd\0134Tds\0134tcp\0042\0040\0057v\0040PortNumber\0040\0057t\0040reg\0137dword\0040\0057d\0040$WinRemote\0040\0057f\r\nreg\0040add\0040\0042HKLM\0134SYSTEM\0134CurrentControlSet\0134Control\0134Terminal\0040Server\0134WinStations\0134RDP\0055Tcp\0042\0040\0057v\0040PortNumber\0040\0057t\0040reg\0137dword\0040\0057d\0040$WinRemote\0040\0057f\r\nreg\0040add\0040\0042HKLM\0134SYSTEM\0134CurrentControlSet\0134Control\0134Terminal\0040Server\0134WinStations\0134RDP\0055Tcp\0042\0040\0057v\0040UserAuthentication\0040\0057t\0040reg\0137dword\0040\0057d\00400\0040\0057f\r\nFOR\0040\0057F\0040\0042tokens\00752\0040delims\0075\0072\0042\0040\0045\0045i\0040in\0040\0050\0047SC\0040QUERYEX\0040TermService\0040\0136\0174FINDSTR\0040\0057I\0040\0042PID\0042\0047\0051\0040do\0040TASKKILL\0040\0057F\0040\0057PID\0040\0045\0045i\r\nFOR\0040\0057F\0040\0042tokens\00752\0040delims\0075\0072\0042\0040\0045\0045i\0040in\0040\0050\0047SC\0040QUERYEX\0040UmRdpService\0040\0136\0174FINDSTR\0040\0057I\0040\0042PID\0042\0047\0051\0040do\0040TASKKILL\0040\0057F\0040\0057PID\0040\0045\0045i\r\nSC\0040START\0040TermService\r\n\r\n" >>'/tmp/boot/net.tmp';
-}
-  echo -ne "\0100ECHO\0040OFF\r\n\r\ncd\0056\0076\0045WINDIR\0045\0134GetAdmin\r\nif\0040exist\0040\0045WINDIR\0045\0134GetAdmin\0040\0050del\0040\0057f\0040\0057q\0040\0042\0045WINDIR\0045\0134GetAdmin\0042\0051\0040else\0040\0050\r\necho\0040CreateObject\0136\0050\0042Shell\0056Application\0042\0136\0051\0056ShellExecute\0040\0042\0045\0176s0\0042\0054\0040\0042\0045\0052\0042\0054\0040\0042\0042\0054\0040\0042runas\0042\0054\00401\0040\0076\0076\0040\0042\0045temp\0045\0134Admin\0056vbs\0042\r\n\0042\0045temp\0045\0134Admin\0056vbs\0042\r\ndel\0040\0057f\0040\0057q\0040\0042\0045temp\0045\0134Admin\0056vbs\0042\r\nexit\0040\0057b\00402\0051\r\n\r\n" >'/tmp/boot/net.tmp';
-  [[ "$setNet" == '1' ]] && WinNoDHCP;
-  [[ "$setNet" == '0' ]] && [[ "$AutoNet" == '0' ]] && WinNoDHCP;
-  [[ "$setRDP" == '1' ]] && [[ -n "$WinRemote" ]] && WinRDP
-  echo -ne "ECHO\0040SELECT\0040VOLUME\0075\0045\0045SystemDrive\0045\0045\0040\0076\0040\0042\0045SystemDrive\0045\0134diskpart\0056extend\0042\r\nECHO\0040EXTEND\0040\0076\0076\0040\0042\0045SystemDrive\0045\0134diskpart\0056extend\0042\r\nSTART\0040/WAIT\0040DISKPART\0040\0057S\0040\0042\0045SystemDrive\0045\0134diskpart\0056extend\0042\r\nDEL\0040\0057f\0040\0057q\0040\0042\0045SystemDrive\0045\0134diskpart\0056extend\0042\r\n\r\n" >>'/tmp/boot/net.tmp';
-  echo -ne "cd\0040\0057d\0040\0042\0045ProgramData\0045\0057Microsoft\0057Windows\0057Start\0040Menu\0057Programs\0057Startup\0042\r\ndel\0040\0057f\0040\0057q\0040net\0056bat\r\n\r\n\r\n" >>'/tmp/boot/net.tmp';
-  iconv -f 'UTF-8' -t 'GBK' '/tmp/boot/net.tmp' -o '/tmp/boot/net.bat'
-  rm -rf '/tmp/boot/net.tmp'
-  echo "$DDURL" |grep -q '^https://'
-  [[ $? -eq '0' ]] && {
-    info "Add ssl support..."
-    [[ -n $SSL_SUPPORT ]] && {
-      wget --no-check-certificate -qO- "$SSL_SUPPORT" |tar -x
-      [[ ! -f  /tmp/boot/usr/bin/wget ]] && notice "Error! SSL_SUPPORT."
-      run sed -i 's/wget\ -qO-/\/usr\/bin\/wget\ --no-check-certificate\ --retry-connrefused\ --tries=7\ --continue\ -qO-/g' /tmp/boot/preseed.cfg
-    } || {
-      notice "Not ssl support package! \n\n"
-    }
+  [[ "$ddMode" == '0' ]] && {
+    sed -i '/anna-install/d' /tmp/boot/preseed.cfg
+    sed -i 's/wget.*\/sbin\/reboot\;\ //g' /tmp/boot/preseed.cfg
   }
-}
-
-[[ "$ddMode" == '0' ]] && {
-  sed -i '/anna-install/d' /tmp/boot/preseed.cfg
-  sed -i 's/wget.*\/sbin\/reboot\;\ //g' /tmp/boot/preseed.cfg
-}
 fi
 
   find . | cpio -H newc --create --verbose | gzip -9 > /boot/initrd.img;
