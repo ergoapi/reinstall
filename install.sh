@@ -47,9 +47,7 @@ for BIN_DEP in `echo "$1" |sed 's/,/\n/g'`
             break;
           fi
         done
-      if [ "$Founded" == '1' ]; then
-        info "ok" "$BIN_DEP"
-      else
+      if [ "$Founded" != '1' ]; then
         FullDependence='1';
         info "not Install" "$BIN_DEP"
       fi
@@ -61,15 +59,6 @@ fi
 }
 
 progress "check Dependence"
-
-if [[ "$ddMode" == '1' ]]; then
-  info "ddMode:" "$ddMode" 
-  CheckDependence iconv;
-  linuxdists='debian';
-  tmpDIST='buster';
-  VER='amd64';
-  tmpINS='auto';
-fi
 
 if [[ "$linuxdists" == 'debian' ]] || [[ "$linuxdists" == 'ubuntu' ]]; then
   CheckDependence wget,awk,grep,sed,cut,cat,cpio,gzip,find,dirname,basename;
@@ -157,24 +146,7 @@ if [[ "$SpikCheckDIST" == '0' ]]; then
   }
 fi
 
-
-[[ -n "$tmpINS" ]] && {
-  [[ "$tmpINS" == 'auto' ]] && inVNC='n';
-  [[ "$tmpINS" == 'manual' ]] && inVNC='y';
-}
-
-#[ -n "$ipAddr" ] && [ -n "$ipMask" ] && [ -n "$ipGate" ] && setNet='1';
-# [[ -n "$tmpWORD" ]] && myPASSWORD="$(openssl passwd -1 "$tmpWORD")";
-# [[ -z "$myPASSWORD" ]] && myPASSWORD='$1$0shYGfBd$8v189JOozDO1jPqPO645e1';
-#[[ -n "$tmpFW" ]] && INCFW="$tmpFW";
 [[ -z "$INCFW" ]] && INCFW='0';
-
-#if [[ -n "$interface" ]]; then
-#  IFETH="$interface"
-#else
-  # debian
-#  IFETH="auto"
-#fi
 
 progress "prepare install"
 
@@ -387,9 +359,9 @@ fi
 [[ "$CompDected" != '1' ]] && notice "Detect compressed type not support.";
 [[ "$COMPTYPE" == 'lzma' ]] && UNCOMP='xz --format=lzma --decompress';
 [[ "$COMPTYPE" == 'xz' ]] && UNCOMP='xz --decompress';
-[[ "$COMPTYPE" == 'gzip' ]] && UNCOMP='gzip -d';
+[[ "$COMPTYPE" == 'gzip' ]] && UNCOMP='gzip -q -d';
 
-run $UNCOMP < /tmp/$NewIMG | cpio --extract --make-directories --no-absolute-filenames >>/dev/null 2>&1
+run $UNCOMP < /tmp/$NewIMG  | cpio --extract --make-directories --no-absolute-filenames >>/dev/null 2>&1
 
 if [[ "$linuxdists" == 'debian' ]] || [[ "$linuxdists" == 'ubuntu' ]]; then
   info "write preseed.cfg"
