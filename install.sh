@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export VER='amd64'
-export tmpDIST='stretch'
+export tmpDIST='buster'
 export tmpURL=''
 # export tmpWORD=''
 export tmpMirror=''
@@ -33,12 +33,6 @@ rm /tmp/stdlib.sh
 
 while [[ $# -ge 1 ]]; do
   case $1 in
-    -d|--debian)
-      shift
-      linuxdists='debian'
-      tmpDIST="$1"
-      shift
-      ;;
     -dd|--image)
       shift
       ddMode='1'
@@ -153,7 +147,7 @@ if [[ "$ddMode" == '1' ]]; then
   info "ddMode:" "$ddMode" 
   CheckDependence iconv;
   linuxdists='debian';
-  tmpDIST='stretch';
+  tmpDIST='buster';
   VER='amd64';
   tmpINS='auto';
 fi
@@ -210,7 +204,7 @@ if [[ -z "$PreferOption" ]]; then
 fi
 
 if [[ -z "$tmpDIST" ]]; then
-  [[ "$linuxdists" == 'debian' ]] && DIST='stretch';
+  [[ "$linuxdists" == 'debian' ]] && DIST='buster';
 fi
 
 if [[ -z "$DIST" ]]; then
@@ -223,22 +217,8 @@ if [[ -z "$DIST" ]]; then
       [[ -n $isDigital ]] && {
         [[ "$isDigital" == '7' ]] && DIST='wheezy';
         [[ "$isDigital" == '8' ]] && DIST='jessie';
-        [[ "$isDigital" == '9' ]] && DIST='stretch';
+        [[ "$isDigital" == '9' ]] && DIST='buster';
         [[ "$isDigital" == '10' ]] && DIST='buster';
-      }
-    }
-  fi
-  if [[ "$linuxdists" == 'ubuntu' ]]; then
-    SpikCheckDIST='0'
-    DIST="$(echo "$tmpDIST" |sed -r 's/(.*)/\L\1/')";
-    echo "$DIST" |grep -q '[0-9]';
-    [[ $? -eq '0' ]] && {
-      isDigital="$(echo "$DIST" |grep -o '[\.0-9]\{1,\}' |sed -n '1h;1!H;$g;s/\n//g;$p')";
-      [[ -n $isDigital ]] && {
-        [[ "$isDigital" == '12.04' ]] && DIST='precise';
-        [[ "$isDigital" == '14.04' ]] && DIST='trusty';
-        [[ "$isDigital" == '16.04' ]] && DIST='xenial';
-        [[ "$isDigital" == '18.04' ]] && DIST='bionic';
       }
     }
   fi
@@ -635,17 +615,12 @@ EOF
   sed -i '/netcfg\/confirm_static/d' /tmp/boot/preseed.cfg
 }
 
-[[ "$DIST" == 'trusty' ]] && GRUBPATCH='1'
-[[ "$DIST" == 'wily' ]] && GRUBPATCH='1'
 
 [[ "$GRUBPATCH" == '1' ]] && {
   sed -i 's/^d-i\ grub-installer\/bootdev\ string\ default//g' /tmp/boot/preseed.cfg
 }
 [[ "$GRUBPATCH" == '0' ]] && {
   sed -i 's/debconf-set\ grub-installer\/bootdev.*\"\;//g' /tmp/boot/preseed.cfg
-}
-[[ "$DIST" == 'xenial' ]] && {
-  sed -i 's/^d-i\ clock-setup\/ntp\ boolean\ true/d-i\ clock-setup\/ntp\ boolean\ false/g' /tmp/boot/preseed.cfg
 }
 
 [[ "$linuxdists" == 'debian' ]] && {
