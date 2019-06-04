@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export VER='amd64'
-export tmpDIST='buster'
+export tmpDIST='stretch'
 export tmpURL=''
 # export tmpWORD=''
 export tmpMirror=''
@@ -87,7 +87,7 @@ if [[ -z "$PreferOption" ]]; then
 fi
 
 if [[ -z "$tmpDIST" ]]; then
-  [[ "$linuxdists" == 'debian' ]] && DIST='buster';
+  [[ "$linuxdists" == 'debian' ]] && DIST='stretch';
 fi
 
 if [[ -z "$DIST" ]]; then
@@ -100,7 +100,7 @@ if [[ -z "$DIST" ]]; then
       [[ -n $isDigital ]] && {
         [[ "$isDigital" == '7' ]] && DIST='wheezy';
         [[ "$isDigital" == '8' ]] && DIST='jessie';
-        [[ "$isDigital" == '9' ]] && DIST='buster';
+        [[ "$isDigital" == '9' ]] && DIST='stretch';
         [[ "$isDigital" == '10' ]] && DIST='buster';
       }
     }
