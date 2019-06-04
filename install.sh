@@ -7,8 +7,8 @@
 ## Written By MoeClub.org
 
 
-export tmpVER=''
-export tmpDIST=''
+export tmpVER='amd64'
+export tmpDIST='stretch'
 export tmpURL=''
 export tmpWORD='vagrant'
 export tmpMirror=''
