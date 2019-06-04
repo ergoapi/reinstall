@@ -321,7 +321,7 @@ else
   notice "not support os"
 fi
 if [[ "$linux_relese" == 'debian' ]]; then
-  run wget --no-check-certificate -qO '/boot/firmware.cpio.gz' "http://cdimage.debian.org/cdimage/unofficial/non-free/firmware/${DIST}/current/firmware.cpio.gz"
+  run wget --no-check-certificate -qO '/boot/firmware.cpio.gz' "https://mirrors.tuna.tsinghua.edu.cn/debian-nonfree/firmware/${DIST}/current/firmware.cpio.gz"
 fi
 
 [[ "$setNet" == '1' ]] && {
