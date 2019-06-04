@@ -56,12 +56,6 @@ while [[ $# -ge 1 ]]; do
       tmpDIST="$1"
       shift
       ;;
-    -c|--centos)
-      shift
-      Relese='CentOS'
-      tmpDIST="$1"
-      shift
-      ;;
     -p|--password)
       shift
       myPASSWORD="$1"
@@ -130,9 +124,7 @@ while [[ $# -ge 1 ]]; do
       setIPv6='1'
       ;;
     *)
-      if [[ "$1" != 'error' ]]; then echo -ne "\nInvaild option: '$1'\n\n"; fi
-      echo -ne " Usage:\n\tbash $(basename $0)\t-d/--debian [\033[33m\033[04mdists-name\033[0m]\n\t\t\t\t-u/--ubuntu [\033[04mdists-name\033[0m]\n\t\t\t\t-c/--centos [\033[33m\033[04mdists-verison\033[0m]\n\t\t\t\t-v/--ver [32/\033[33m\033[04mi386\033[0m|64/amd64]\n\t\t\t\t--ip-addr/--ip-gate/--ip-mask\n\t\t\t\t-apt/-yum/--mirror\n\t\t\t\t-dd/--image\n\t\t\t\t-a/--auto\n\t\t\t\t-m/--manual\n"
-      exit 1;
+      notice "not support"
       ;;
     esac
   done
@@ -196,7 +188,7 @@ if [[ "$loaderMode" == "0" ]]; then
   [[ -f '/boot/grub/grub.cfg' ]] && GRUBVER='0' && GRUBDIR='/boot/grub' && GRUBFILE='grub.cfg';
   [[ -z "$GRUBDIR" ]] && [[ -f '/boot/grub2/grub.cfg' ]] && GRUBVER='0' && GRUBDIR='/boot/grub2' && GRUBFILE='grub.cfg';
   [[ -z "$GRUBDIR" ]] && [[ -f '/boot/grub/grub.conf' ]] && GRUBVER='1' && GRUBDIR='/boot/grub' && GRUBFILE='grub.conf';
-  [ -z "$GRUBDIR" -o -z "$GRUBFILE" ] && echo -ne "Error! \nNot Found grub.\n" && exit 1;
+  [ -z "$GRUBDIR" -o -z "$GRUBFILE" ] && notice "Not Found grub";
 else
   tmpINS='auto'
 fi
@@ -256,14 +248,11 @@ if [[ -z "$DIST" ]]; then
     ListDIST="$(wget --no-check-certificate -qO- "$LinuxMirror/dir_sizes" |cut -f2 |grep '^[0-9]')"
     DIST="$(echo "$ListDIST" |grep "^$DISTCheck" |head -n1)"
     [[ -z "$DIST" ]] && {
-      echo -ne '\nThe dists version not found in this mirror, Please check it! \n\n'
-      bash $0 error;
-      exit 1;
+      notice "The dists version not found in this mirror, Please check it!"
     }
     wget --no-check-certificate -qO- "$LinuxMirror/$DIST/os/$VER/.treeinfo" |grep -q 'general';
     [[ $? != '0' ]] && {
-        echo -ne "\nThe version not found in this mirror, Please change mirror try again! \n\n";
-        exit 1;
+        notice "The version not found in this mirror, Please change mirror try again!"
     }
   fi
 fi
@@ -306,7 +295,7 @@ progress "installing..."
 ASKVNC(){
   inVNC='y';
   [[ "$ddMode" == '0' ]] && {
-    echo -ne "\033[34mDo you want to install os manually?\033[0m\e[33m[\e[32my\e[33m/n]\e[0m "
+    info "Do you want to install os manually? " "[y/n]"
     read tmpinVNC
     [[ -n "$inVNCtmp" ]] && inVNC="$tmpinVNC"
   }
@@ -316,28 +305,9 @@ ASKVNC(){
 
 [ "$inVNC" == 'y' -o "$inVNC" == 'n' ] || ASKVNC;
 [[ "$ddMode" == '0' ]] && { 
-  [[ "$inVNC" == 'y' ]] && echo -e "\033[34mManual Mode\033[0m insatll [\033[33m$Relese\033[0m] [\033[33m$DIST\033[0m] [\033[33m$VER\033[0m] in VNC. "
-  [[ "$inVNC" == 'n' ]] && echo -e "\033[34mAuto Mode\033[0m insatll [\033[33m$Relese\033[0m] [\033[33m$DIST\033[0m] [\033[33m$VER\033[0m]. "
+  [[ "$inVNC" == 'y' ]] && info "Manual Mode insatll $Relese $DIST $VER in VNC. "
+  [[ "$inVNC" == 'n' ]] && info "Auto Mode insatll $Relese $DIST $VER. "
 }
-
-if [[ "$linux_relese" == 'centos' ]]; then
-  if [[ "$DIST" != "$UNVER" ]]; then
-    awk 'BEGIN{print '${UNVER}'-'${DIST}'}' |grep -q '^-'
-    if [ $? != '0' ]; then
-      UNKNOWHW='1';
-      echo -en "\033[33mThe version lower then \033[31m$UNVER\033[33m may not support in auto mode! \033[0m\n";
-      if [[ "$inVNC" == 'n' ]]; then
-        echo -en "\033[35mYou can connect VNC with \033[32mPublic IP\033[35m and port \033[32m1\033[35m/\033[32m5901\033[35m in vnc viewer.\033[0m\n"
-        read -n 1 -p "Press Enter to continue..." INP
-        [[ "$INP" != '' ]] && echo -ne '\b \n\n';
-      fi
-    fi
-    awk 'BEGIN{print '${UNVER}'-'${DIST}'+0.59}' |grep -q '^-'
-    if [ $? == '0' ]; then
-      notice "The version higher then 6.10 is not support in current!"
-    fi
-  fi
-fi
 
 info "$Relese $DIST $VER Downloading..."
 
@@ -347,9 +317,6 @@ if [[ "$linux_relese" == 'debian' ]] || [[ "$linux_relese" == 'ubuntu' ]]; then
   run wget --no-check-certificate -qO '/boot/vmlinuz' "${LinuxMirror}/dists/${DIST}${inUpdate}/main/installer-${VER}/current/images/netboot/${linux_relese}-installer/${VER}/linux"
   MirrorHost="$(echo "$LinuxMirror" |awk -F'://|/' '{print $2}')";
   MirrorFolder="$(echo "$LinuxMirror" |awk -F''${MirrorHost}'' '{print $2}')";
-elif [[ "$linux_relese" == 'centos' ]]; then
-  run wget --no-check-certificate -qO '/boot/initrd.img' "${LinuxMirror}/${DIST}/os/${VER}/isolinux/initrd.img"
-  run wget --no-check-certificate -qO '/boot/vmlinuz' "${LinuxMirror}/${DIST}/os/${VER}/isolinux/vmlinuz"
 else
   notice "not support os"
 fi
@@ -371,7 +338,7 @@ fi
 }
 
 [[ -n "$GATE" ]] && [[ -n "$MASK" ]] && [[ -n "$IPv4" ]] || {
-echo "Not found \`ip command\`, It will use \`route command\`."
+info "Not found \`ip command\`, It will use \`route command\`."
 ipNum() {
   local IFS='.';
   read ip1 ip2 ip3 ip4 <<<"$1";
@@ -428,7 +395,7 @@ SelectMax() {
 }
 
 if [[ "$loaderMode" == "0" ]]; then
-  [[ ! -f $GRUBDIR/$GRUBFILE ]] && echo "Error! Not Found $GRUBFILE. " && exit 1;
+  [[ ! -f $GRUBDIR/$GRUBFILE ]] && notice "Not Found $GRUBFILE. "
 
   [[ ! -f $GRUBDIR/$GRUBFILE.old ]] && [[ -f $GRUBDIR/$GRUBFILE.bak ]] && mv -f $GRUBDIR/$GRUBFILE.bak $GRUBDIR/$GRUBFILE.old;
   mv -f $GRUBDIR/$GRUBFILE $GRUBDIR/$GRUBFILE.bak;
@@ -452,8 +419,7 @@ fi
         [ "$tmpCFG" -gt "$CFG0" -a "$tmpCFG" -lt "$CFG2" ] && CFG1="$tmpCFG";
       done
     [[ -z "$CFG1" ]] && {
-      echo "Error! read $GRUBFILE. ";
-      exit 1;
+      notice "read $GRUBFILE. ";
     }
 
     sed -n "$CFG0,$CFG1"p $READGRUB >/tmp/grub.new;
@@ -482,7 +448,7 @@ if [[ "$loaderMode" == "0" ]]; then
 [[ -n "$(grep 'linux.*/\|kernel.*/' /tmp/grub.new |awk '{print $2}' |tail -n 1 |grep '^/boot/')" ]] && Type='InBoot' || Type='NoBoot';
 
 LinuxKernel="$(grep 'linux.*/\|kernel.*/' /tmp/grub.new |awk '{print $1}' |head -n 1)";
-[[ -z "$LinuxKernel" ]] && echo "Error! read grub config! " && exit 1;
+[[ -z "$LinuxKernel" ]] && notice "read grub config! ";
 LinuxIMG="$(grep 'initrd.*/' /tmp/grub.new |awk '{print $1}' |tail -n 1)";
 [ -z "$LinuxIMG" ] && sed -i "/$LinuxKernel.*\//a\\\tinitrd\ \/" /tmp/grub.new && LinuxIMG='initrd';
 
@@ -498,8 +464,6 @@ fi
 
 if [[ "$linux_relese" == 'debian' ]] || [[ "$linux_relese" == 'ubuntu' ]]; then
   BOOT_OPTION="auto=true $Add_OPTION hostname=$linux_relese domain= -- quiet"
-elif [[ "$linux_relese" == 'centos' ]]; then
-  BOOT_OPTION="ks=file://ks.cfg $Add_OPTION ksdevice=$IFETH"
 fi
 
 [[ "$Type" == 'InBoot' ]] && {
@@ -533,9 +497,6 @@ mkdir -p /tmp/boot;
 cd /tmp/boot;
 if [[ "$linux_relese" == 'debian' ]] || [[ "$linux_relese" == 'ubuntu' ]]; then
   COMPTYPE="gzip";
-elif [[ "$linux_relese" == 'centos' ]]; then
-  COMPTYPE="$(file /boot/initrd.img |grep -o ':.*compressed data' |cut -d' ' -f2 |sed -r 's/(.*)/\L\1/' |head -n1)"
-  [[ -z "$COMPTYPE" ]] && echo "Detect compressed type fail." && exit 1;
 fi
 CompDected='0'
 for ListCOMP in `echo -en 'gzip\nlzma\nxz'`
@@ -694,51 +655,6 @@ EOF
   sed -i '/anna-install/d' /tmp/boot/preseed.cfg
   sed -i 's/wget.*\/sbin\/reboot\;\ //g' /tmp/boot/preseed.cfg
 }
-
-elif [[ "$linux_relese" == 'centos' ]]; then
-cat >/tmp/boot/ks.cfg<<EOF
-#platform=x86, AMD64, or Intel EM64T
-firewall --enabled --ssh
-install
-url --url="$LinuxMirror/$DIST/os/$VER/"
-rootpw --iscrypted $myPASSWORD
-auth --useshadow --passalgo=sha512
-firstboot --disable
-lang en_US
-keyboard us
-selinux --disabled
-logging --level=info
-reboot
-text
-unsupported_hardware
-vnc
-skipx
-timezone --isUtc Asia/Hong_Kong
-#ONDHCP network --bootproto=dhcp --onboot=on
-#NODHCP network --bootproto=static --ip=$IPv4 --netmask=$MASK --gateway=$GATE --nameserver=8.8.8.8 --onboot=on
-bootloader --location=mbr --append="rhgb quiet crashkernel=auto"
-zerombr
-clearpart --all --initlabel 
-autopart
-
-%packages
-@base
-%end
-
-%post --interpreter=/bin/bash
-rm -rf /root/anaconda-ks.cfg
-rm -rf /root/install.*log
-%end
-
-EOF
-
-[[ "$setNet" == '0' ]] && [[ "$AutoNet" == '1' ]] && {
-  sed -i 's/#ONDHCP\ //g' /tmp/boot/ks.cfg
-} || {
-  sed -i 's/#NODHCP\ //g' /tmp/boot/ks.cfg
-}
-[[ "$UNKNOWHW" == '1' ]] && sed -i 's/^unsupported_hardware/#unsupported_hardware/g' /tmp/boot/ks.cfg
-[[ "$(echo "$DIST" |grep -o '^[0-9]\{1\}')" == '5' ]] && sed -i '0,/^%end/s//#%end/' /tmp/boot/ks.cfg
 fi
 
 find . | cpio -H newc --create --verbose | gzip -9 > /boot/initrd.img;
@@ -748,9 +664,10 @@ rm -rf /tmp/boot;
 [[ "$inVNC" == 'y' ]] && {
   sed -i '$i\\n' $GRUBDIR/$GRUBFILE
   sed -i '$r /tmp/grub.new' $GRUBDIR/$GRUBFILE
-  echo -e "\n\033[33m\033[04mIt will reboot! \nPlease connect VNC! \nSelect\033[0m\033[32m Install OS [$DIST $VER] \033[33m\033[4mto install system.\033[04m\n\n\033[31m\033[04mThere is some information for you.\nDO NOT CLOSE THE WINDOW! \033[0m\n"
-  echo -e "\033[35mIPv4\t\tNETMASK\t\tGATEWAY\033[0m"
-  echo -e "\033[36m\033[04m$IPv4\033[0m\t\033[36m\033[04m$MASK\033[0m\t\033[36m\033[04m$GATE\033[0m\n\n"
+  info "It will reboot! Please connect VNC! Select Install OS [$DIST $VER] to install system. There is some information for you. DO NOT CLOSE THE WINDOW!"
+  info "IPv4" "$IPv4"
+  info "NETMASK" "$MASK"
+  info "GATEWAY" "$GATE"
 
   read -n 1 -p "Press Enter to reboot..." INP
   [[ "$INP" != '' ]] && echo -ne '\b \n\n';
