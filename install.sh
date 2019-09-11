@@ -578,20 +578,6 @@ d-i time/zone string Asia/Shanghai
 
 
 
-d-i preseed/early_command string anna-install libfuse2-udeb fuse-udeb ntfs-3g-udeb fuse-modules-${vKernel_udeb}-amd64-di
-d-i partman/early_command string \
-debconf-set partman-auto/disk "\$(list-devices disk |head -n1)"; \
-wget -qO- '$DDURL' |gunzip -dc |/bin/dd of=\$(list-devices disk |head -n1); \
-mount.ntfs-3g \$(list-devices partition |head -n1) /mnt; \
-cd '/mnt/ProgramData/Microsoft/Windows/Start Menu/Programs'; \
-cd Start* || cd start*; \
-cp -f '/net.bat' './net.bat'; \
-/sbin/reboot; \
-debconf-set grub-installer/bootdev string "\$(list-devices disk |head -n1)"; \
-umount /media || true; \
-
-d-i partman/mount_style select uuid
-
 ### Partitioning
 d-i partman-auto/method string regular
 d-i partman-auto/expert_recipe string \
@@ -619,35 +605,60 @@ d-i partman-partitioning/confirm_write_new_label boolean true
 d-i partman/choose_partition select finish
 d-i partman/confirm boolean true
 d-i partman/confirm_nooverwrite boolean true
+#d-i partman/mount_style select uuid
 
-#d-i partman-auto/init_automatically_partition select Guided - use entire disk
-#d-i partman-auto/method string regular
-#d-i partman-lvm/device_remove_lvm boolean true
-#d-i partman-md/device_remove_md boolean true
-#d-i partman-auto/choose_recipe select atomic
-#d-i partman-partitioning/confirm_write_new_label boolean true
-#d-i partman/choose_partition select finish
-#d-i partman-lvm/confirm boolean true
-#d-i partman-lvm/confirm_nooverwrite boolean true
-#d-i partman/confirm boolean true
-#d-i partman/confirm_nooverwrite boolean true
+### Apt setup
+d-i apt-setup/cdrom/set-first boolean false
+d-i apt-setup/cdrom/set-next boolean false
+d-i apt-setup/cdrom/set-failed boolean false
+d-i apt-setup/use_mirror boolean true
+d-i apt-setup/main boolean true
+d-i apt-setup/non-free boolean true
+d-i apt-setup/contrib boolean true
+d-i apt-setup/local0/repository string http://mirror.xtom.com.hk/debian/ stretch-backports main contrib non-free
+d-i apt-setup/local0/comment string stretch backports
+apt-mirror-setup apt-setup/use_mirror boolean true
 
-d-i debian-installer/allow_unauthenticated boolean true
-
-tasksel tasksel/first multiselect minimal
+### Package selection
+tasksel tasksel/first multiselect standard, server
+#d-i pkgsel/include string debconf-utils openssh-server apt-transport-https sudo bzip2 acpid cryptsetup zlib1g-dev wget curl dkms rsync dnsutils make nfs-common net-tools  vim  procps git 
+d-i pkgsel/include string curl openssh-server sudo sed apt-transport-https net-tools
 d-i pkgsel/update-policy select none
-d-i pkgsel/include string curl wget openssh-server sudo sed apt-transport-https net-tools nano git
-d-i pkgsel/upgrade select none
-
+d-i pkgsel/upgrade select full-upgrade
+d-i pkgsel/install-language-support boolean false
+d-i pkgsel/language-packs multiselect en
 popularity-contest popularity-contest/participate boolean false
 
+### SSH
+openssh-server openssh-server/permit-root-login	boolean	true
+
+### CMD
+#d-i	preseed/late_command string \
+#    sed -i -e 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/g' /target/etc/ssh/sshd_config; \
+#    sed -i -e 's/^#\?PermitRootLogin.*/PermitRootLogin yes/g' /target/etc/ssh/sshd_config; \
+#    apt-install -y linux-image-amd64 -t stretch-backports; \
+#    in-target /usr/bin/apt-get install -y -t stretch-backports iproute2 htop zsh; \
+#    in-target /usr/bin/apt-get remove --purge linux-image-4.9.0-8-amd64 -y;\
+#    update-grub; \
+#    echo "666" > /target/etc/ysicing
+
+d-i libpam0g/restart-services string cron
+d-i libraries/restart-without-asking boolean true
+
+d-i preseed/late_command string                                                   \
+        sed -ri 's/^#?PermitRootLogin.*/PermitRootLogin yes/g' /target/etc/ssh/sshd_config; \
+        sed -ri 's/^#?PasswordAuthentication.*/PasswordAuthentication yes/g' /target/etc/ssh/sshd_config;
+
+
+### GRUB
 d-i grub-installer/only_debian boolean true
 d-i grub-installer/bootdev string default
+
+### Finishing up the installation
+d-i finish-install/keep-consoles boolean true
 d-i finish-install/reboot_in_progress note
-d-i debian-installer/exit/reboot boolean true
-d-i preseed/late_command string	\
-sed -ri 's/^#?PermitRootLogin.*/PermitRootLogin yes/g' /target/etc/ssh/sshd_config; \
-sed -ri 's/^#?PasswordAuthentication.*/PasswordAuthentication yes/g' /target/etc/ssh/sshd_config;
+
+
 EOF
 
 [[ "$loaderMode" != "0" ]] && AutoNet='1'
