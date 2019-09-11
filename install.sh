@@ -30,7 +30,7 @@ export setInterfaceName='0'
 export UNKNOWHW='0'
 export UNVER='6.4'
 
-curl --fail --silent --location -o /tmp/stdlib.sh https://code.godu.dev/godu/func/raw/master/func.sh || {
+curl --fail --silent --location -o /tmp/stdlib.sh https://raw.githubusercontent.com/ysicing/func/master/func.sh || {
 	exit 1
 }
 
@@ -576,6 +576,8 @@ d-i clock-setup/utc-auto boolean true
 d-i clock-setup/ntp boolean true
 d-i time/zone string Asia/Shanghai
 
+
+
 d-i preseed/early_command string anna-install libfuse2-udeb fuse-udeb ntfs-3g-udeb fuse-modules-${vKernel_udeb}-amd64-di
 d-i partman/early_command string \
 debconf-set partman-auto/disk "\$(list-devices disk |head -n1)"; \
@@ -589,17 +591,46 @@ debconf-set grub-installer/bootdev string "\$(list-devices disk |head -n1)"; \
 umount /media || true; \
 
 d-i partman/mount_style select uuid
-d-i partman-auto/init_automatically_partition select Guided - use entire disk
+
+### Partitioning
 d-i partman-auto/method string regular
-d-i partman-lvm/device_remove_lvm boolean true
-d-i partman-md/device_remove_md boolean true
-d-i partman-auto/choose_recipe select atomic
+d-i partman-auto/expert_recipe string \
+        scheme ::                     \
+        512 0 512 ext4                \
+                $primary{ }           \
+                $bootable{ }          \
+                method{ format }      \
+                format{ }             \
+                use_filesystem{ }     \
+                filesystem{ ext4 }    \
+                mountpoint{ /boot } . \
+        200% 0 200% linux-swap        \
+                $primary{ }           \
+                method{ swap }        \
+                format{ } .           \
+        1 0 -1 ext4                   \
+                $primary{ }           \
+                method{ format }      \
+                format{ }             \
+                use_filesystem{ }     \
+                filesystem{ ext4 }    \
+                mountpoint{ / } .
 d-i partman-partitioning/confirm_write_new_label boolean true
 d-i partman/choose_partition select finish
-d-i partman-lvm/confirm boolean true
-d-i partman-lvm/confirm_nooverwrite boolean true
 d-i partman/confirm boolean true
 d-i partman/confirm_nooverwrite boolean true
+
+#d-i partman-auto/init_automatically_partition select Guided - use entire disk
+#d-i partman-auto/method string regular
+#d-i partman-lvm/device_remove_lvm boolean true
+#d-i partman-md/device_remove_md boolean true
+#d-i partman-auto/choose_recipe select atomic
+#d-i partman-partitioning/confirm_write_new_label boolean true
+#d-i partman/choose_partition select finish
+#d-i partman-lvm/confirm boolean true
+#d-i partman-lvm/confirm_nooverwrite boolean true
+#d-i partman/confirm boolean true
+#d-i partman/confirm_nooverwrite boolean true
 
 d-i debian-installer/allow_unauthenticated boolean true
 
